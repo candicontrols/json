@@ -20,6 +20,10 @@
 #include <nlohmann/detail/macro_scope.hpp>
 #include <nlohmann/detail/value_t.hpp>
 
+#ifndef USE_POISONED_MEMCPY
+#include "candi_s.h"
+#endif
+
 namespace nlohmann
 {
 namespace detail
@@ -846,7 +850,11 @@ class binary_reader
 
         // step 2: convert array into number of type T and return
         NumberType result;
+#ifdef USE_POISONED_MEMCPY
         std::memcpy(&result, vec.data(), sizeof(NumberType));
+#else
+        memcpy_s(&result, sizeof(NumberType), vec.data(), sizeof(NumberType));
+#endif
         return result;
     }
 

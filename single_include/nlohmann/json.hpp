@@ -30,6 +30,10 @@ SOFTWARE.
 #ifndef NLOHMANN_JSON_HPP
 #define NLOHMANN_JSON_HPP
 
+#ifndef USE_POISONED_MEMCPY
+#include "candi_s.h"
+#endif
+
 #define NLOHMANN_JSON_VERSION_MAJOR 3
 #define NLOHMANN_JSON_VERSION_MINOR 1
 #define NLOHMANN_JSON_VERSION_PATCH 2
@@ -5856,7 +5860,11 @@ class binary_reader
 
         // step 2: convert array into number of type T and return
         NumberType result;
+#ifdef USE_POISONED_MEMCPY
         std::memcpy(&result, vec.data(), sizeof(NumberType));
+#else
+        memcpy_s(&result, sizeof(NumberType), vec.data(), sizeof(NumberType));
+#endif
         return result;
     }
 
@@ -7080,7 +7088,12 @@ class binary_writer
     {
         // step 1: write number to array of length NumberType
         std::array<CharType, sizeof(NumberType)> vec;
-        std::memcpy(vec.data(), &n, sizeof(NumberType));
+
+#ifdef USE_POISONED_MEMCPY
+      std::memcpy(vec.data(), &n, sizeof(NumberType));
+#else
+      memcpy_s(vec.data(), sizeof(NumberType), &n, sizeof(NumberType));
+#endif
 
         // step 2: write array to output (with possible reordering)
         if (is_little_endian)
@@ -7399,7 +7412,11 @@ Target reinterpret_bits(const Source source)
     static_assert(sizeof(Target) == sizeof(Source), "size mismatch");
 
     Target target;
+#ifdef USE_POISONED_MEMCPY
     std::memcpy(&target, &source, sizeof(Source));
+#else
+    memcpy_s(&target, sizeof(Target), &source, sizeof(Source));
+#endif
     return target;
 }
 

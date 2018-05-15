@@ -9,6 +9,10 @@
 #include <nlohmann/detail/input/binary_reader.hpp>
 #include <nlohmann/detail/output/output_adapters.hpp>
 
+#ifndef USE_POISONED_MEMCPY
+#include "candi_s.h"
+#endif
+
 namespace nlohmann
 {
 namespace detail
@@ -692,7 +696,11 @@ class binary_writer
     {
         // step 1: write number to array of length NumberType
         std::array<CharType, sizeof(NumberType)> vec;
+#ifdef USE_POISONED_MEMCPY
         std::memcpy(vec.data(), &n, sizeof(NumberType));
+#else
+        memcpy_s(vec.data(), sizeof(NumberType), &n, sizeof(NumberType));
+#endif
 
         // step 2: write array to output (with possible reordering)
         if (is_little_endian)

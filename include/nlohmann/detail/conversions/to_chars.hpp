@@ -6,6 +6,10 @@
 #include <cstdint> // intN_t, uintN_t
 #include <cstring> // memcpy, memmove
 
+#ifndef USE_POISONED_MEMCPY
+#include "candi_s.h"
+#endif
+
 namespace nlohmann
 {
 namespace detail
@@ -39,7 +43,11 @@ Target reinterpret_bits(const Source source)
     static_assert(sizeof(Target) == sizeof(Source), "size mismatch");
 
     Target target;
+#ifdef USE_POISONED_MEMCPY
     std::memcpy(&target, &source, sizeof(Source));
+#else
+    memcpy_s(&target, sizeof(Target), &source, sizeof(Source));
+#endif
     return target;
 }
 
