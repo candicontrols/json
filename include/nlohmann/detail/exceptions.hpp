@@ -1,8 +1,9 @@
-#pragma once
+#pragma  once
 
 #include <exception> // exception
 #include <stdexcept> // runtime_error
 #include <string> // to_string
+#include <execinfo.h>
 
 namespace nlohmann
 {
@@ -43,6 +44,10 @@ caught.,exception}
 class exception : public std::exception
 {
   public:
+    void *trace[64];
+    int traceSize;
+    char **messages;
+
     /// returns the explanatory string
     const char* what() const noexcept override
     {
@@ -53,7 +58,13 @@ class exception : public std::exception
     const int id;
 
   protected:
-    exception(int id_, const char* what_arg) : id(id_), m(what_arg) {}
+    exception(int id_, const char* what_arg) : id(id_), m(what_arg) {
+        traceSize = backtrace(trace, 64);
+        messages = backtrace_symbols(trace, traceSize);
+    }
+    ~exception() {
+        free(messages);
+    }
 
     static std::string name(const std::string& ename, int id_)
     {
