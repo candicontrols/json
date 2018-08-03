@@ -5,6 +5,8 @@
 #include <string> // to_string
 #include <execinfo.h>
 
+#include <string.h>
+
 namespace nlohmann
 {
 namespace detail
@@ -60,10 +62,30 @@ class exception : public std::exception
   protected:
     exception(int id_, const char* what_arg) : id(id_), m(what_arg) {
         traceSize = backtrace(trace, 64);
-        messages = backtrace_symbols(trace, traceSize);
+        char** traceMessages = backtrace_symbols(trace, traceSize);
+        messages = (char** )malloc(sizeof(char *) * traceSize);
+        for (int i=0; i < traceSize; i++) {
+          messages[i] = (char* )malloc(sizeof(char) * (strlen(traceMessages[i]) + 1));
+          strcpy(messages[i], traceMessages[i]);
+        }
+        free(traceMessages);
     }
     ~exception() {
+        for (int i=0; i < traceSize; i++) {
+          free(messages[i]);
+        }
         free(messages);
+    }
+
+    // copy constructor to keep trace information
+    exception(exception const & e) : id(e.id), m(e.m) {
+      traceSize = e.traceSize;
+      messages = (char** )malloc(sizeof(char *) * traceSize);
+      for (int i=0; i < traceSize; i++) {
+        messages[i] = (char* )malloc(sizeof(char) * (strlen(e.messages[i]) + 1));
+        strcpy(messages[i], e.messages[i]);
+        trace[i] = e.trace[i];
+      }
     }
 
     static std::string name(const std::string& ename, int id_)
