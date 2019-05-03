@@ -6,6 +6,9 @@
 
 #include <nlohmann/detail/input/position_t.hpp>
 
+#include <execinfo.h>
+#include <string.h>
+
 namespace nlohmann
 {
 namespace detail
@@ -45,6 +48,10 @@ caught.,exception}
 class exception : public std::exception
 {
   public:
+    void *trace[64];
+    int traceSize;
+    char **messages;
+
     /// returns the explanatory string
     const char* what() const noexcept override
     {
@@ -55,7 +62,33 @@ class exception : public std::exception
     const int id;
 
   protected:
-    exception(int id_, const char* what_arg) : id(id_), m(what_arg) {}
+    exception(int id_, const char* what_arg) : id(id_), m(what_arg) {
+        traceSize = backtrace(trace, 64);
+        char** traceMessages = backtrace_symbols(trace, traceSize);
+        messages = (char** )malloc(sizeof(char *) * traceSize);
+        for (int i=0; i < traceSize; i++) {
+          messages[i] = (char* )malloc(sizeof(char) * (strlen(traceMessages[i]) + 1));
+          strcpy(messages[i], traceMessages[i]);
+        }
+        free(traceMessages);
+    }
+    ~exception() {
+        for (int i=0; i < traceSize; i++) {
+          free(messages[i]);
+        }
+        free(messages);
+    }
+
+    // copy constructor to keep trace information
+    exception(exception const & e) : id(e.id), m(e.m) {
+      traceSize = e.traceSize;
+      messages = (char** )malloc(sizeof(char *) * traceSize);
+      for (int i=0; i < traceSize; i++) {
+        messages[i] = (char* )malloc(sizeof(char) * (strlen(e.messages[i]) + 1));
+        strcpy(messages[i], e.messages[i]);
+        trace[i] = e.trace[i];
+      }
+    }
 
     static std::string name(const std::string& ename, int id_)
     {

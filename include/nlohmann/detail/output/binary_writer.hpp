@@ -10,6 +10,10 @@
 #include <nlohmann/detail/input/binary_reader.hpp>
 #include <nlohmann/detail/output/output_adapters.hpp>
 
+#ifndef USE_POISONED_MEMCPY
+#include "candi_s.h"
+#endif
+
 namespace nlohmann
 {
 namespace detail
@@ -1271,8 +1275,11 @@ class binary_writer
     {
         // step 1: write number to array of length NumberType
         std::array<CharType, sizeof(NumberType)> vec;
+#ifdef USE_POISONED_MEMCPY
         std::memcpy(vec.data(), &n, sizeof(NumberType));
-
+#else
+       memcpy_s(vec.data(), sizeof(NumberType), &n, sizeof(NumberType));
+#endif
         // step 2: write array to output (with possible reordering)
         if (is_little_endian != OutputIsLittleEndian)
         {
@@ -1302,7 +1309,11 @@ class binary_writer
         static_assert(sizeof(std::uint8_t) == sizeof(CharType), "size of CharType must be equal to std::uint8_t");
         static_assert(std::is_pod<CharType>::value, "CharType must be POD");
         CharType result;
+#ifdef USE_POISONED_MEMCPY	
         std::memcpy(&result, &x, sizeof(x));
+#else
+        memcpy_s(&result, sizeof(std::uint8_t), &x, sizeof(std::uint8_t));
+#endif	
         return result;
     }
 

@@ -1969,7 +1969,7 @@ class basic_json
     string_t dump(const int indent = -1,
                   const char indent_char = ' ',
                   const bool ensure_ascii = false,
-                  const error_handler_t error_handler = error_handler_t::strict) const
+                  const error_handler_t error_handler = error_handler_t::ignore) const
     {
         string_t result;
         serializer s(detail::output_adapter<char, string_t>(result), indent_char, error_handler);
